@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['fullName', 'email', 'phone', 'updatedAt'])
+        && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() <= 100
+        && request.resource.data.email is string && request.resource.data.email.size() > 0
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.phone is string
+        && request.resource.data.phone == request.auth.token.get('phone_number', '')
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    match /complaints/{id} {
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['ownerId', 'product', 'serialNumber', 'description', 'address', 'status', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerId', 'product', 'serialNumber', 'description', 'address', 'status', 'createdAt'])
+        && request.resource.data.ownerId == request.auth.uid && request.resource.data.status == 'submitted'
+        && request.resource.data.createdAt == request.time && request.resource.data.product is string
+        && request.resource.data.product.size() > 0 && request.resource.data.product.size() <= 100
+        && request.resource.data.serialNumber is string
+        && request.resource.data.serialNumber.size() > 0 && request.resource.data.serialNumber.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() >= 10 && request.resource.data.description.size() <= 2000
+        && request.resource.data.address is string
+        && request.resource.data.address.size() > 0 && request.resource.data.address.size() <= 500;
+      allow update, delete: if false;
+    }
+  }
+}
